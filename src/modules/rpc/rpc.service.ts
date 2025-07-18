@@ -91,7 +91,7 @@ export class RpcService {
         this.logger.log(
           `Response from ${currentEndpoint}: Status ${response.status}`,
         );
-        return { status: response.status, data: response.data };
+        return response.data;
       } catch (error) {
         if (this.isRateLimitExceeded(error as AxiosError)) {
           this.logger.warn(
