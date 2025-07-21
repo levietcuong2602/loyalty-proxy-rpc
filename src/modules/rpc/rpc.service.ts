@@ -16,7 +16,7 @@ export class RpcService {
     lastErrorTime: number | null;
     errorCount: number;
   }[];
-  private readonly RECOVERY_TIME = 5 * 60 * 1000;
+  private readonly RECOVERY_TIME = 1 * 60 * 1000;
 
   constructor(private readonly configService: ConfigService) {
     this.endpoints =
@@ -40,15 +40,17 @@ export class RpcService {
   }
 
   private getNextAvailableEndpoint(): string {
-    this.logger.log(`List endpoints: ${this.endpoints.join(',')}`);
     let checked = 0;
     const total = this.endpoints.length;
     let idx = this.currentEndpointIndex;
     while (checked < total) {
       const status = this.endpointStatus[idx];
-      this.logger.log(`checking status endpoint: ${JSON.stringify(status)}`);
+      this.logger.log(
+        `checking status endpoint ${this.endpoints[idx]}: ${JSON.stringify(status)}`,
+      );
 
       if (status.isAvailable) {
+        this.logger.log(`endpoint ${this.endpoints[idx]} is available`);
         this.currentEndpointIndex = idx;
         return this.endpoints[idx];
       }
@@ -56,6 +58,9 @@ export class RpcService {
         status.lastErrorTime &&
         Date.now() - status.lastErrorTime > this.RECOVERY_TIME
       ) {
+        this.logger.log(
+          `Endpoint ${this.endpoints[idx]} is recovering from error, marking as available`,
+        );
         status.isAvailable = true;
         status.errorCount = 0;
         this.currentEndpointIndex = idx;
