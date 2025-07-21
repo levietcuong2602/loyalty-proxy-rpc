@@ -40,12 +40,13 @@ export class RpcService {
   }
 
   private getNextAvailableEndpoint(): string {
+    this.logger.log(`List endpoints: ${this.endpoints.join(',')}`);
     let checked = 0;
     const total = this.endpoints.length;
     let idx = this.currentEndpointIndex;
     while (checked < total) {
       const status = this.endpointStatus[idx];
-      this.logger.log('endpoint status:', JSON.stringify(status));
+      this.logger.log(`checking status endpoint: ${JSON.stringify(status)}`);
 
       if (status.isAvailable) {
         this.currentEndpointIndex = idx;
