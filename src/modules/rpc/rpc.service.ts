@@ -45,6 +45,8 @@ export class RpcService {
     let idx = this.currentEndpointIndex;
     while (checked < total) {
       const status = this.endpointStatus[idx];
+      this.logger.log('endpoint status:', JSON.stringify(status));
+
       if (status.isAvailable) {
         this.currentEndpointIndex = idx;
         return this.endpoints[idx];
@@ -78,7 +80,7 @@ export class RpcService {
 
   async forwardRpcRequest(body: any): Promise<{ status: number; data: any }> {
     let retries = 0;
-    const MAX_RETRIES = 3;
+    const MAX_RETRIES = this.endpoints.length;
     while (retries < MAX_RETRIES) {
       const currentEndpoint = this.getNextAvailableEndpoint();
       try {
