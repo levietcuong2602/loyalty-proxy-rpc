@@ -78,7 +78,7 @@ export class RpcService {
 
   async forwardRpcRequest(body: any): Promise<{ status: number; data: any }> {
     let retries = 0;
-    const MAX_RETRIES = this.endpoints.length;
+    const MAX_RETRIES = 3;
     while (retries < MAX_RETRIES) {
       const currentEndpoint = this.getNextAvailableEndpoint();
       try {
