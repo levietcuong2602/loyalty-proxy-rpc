@@ -1,0 +1,15 @@
+version: '3'
+
+services:
+  loyalty-proxy-rpc:
+    container_name: loyalty-proxy-rpc
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - ${PORT}:5001
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/public
