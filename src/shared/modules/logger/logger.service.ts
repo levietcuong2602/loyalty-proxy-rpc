@@ -4,7 +4,7 @@ import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class LoggerService extends ConsoleLogger {
-  private readonly enabledLog = true;
+  private readonly enabledLog = false;
   constructor(
     private readonly syncLogGpcProducer: SyncLogFileGcpProducer,
     private readonly configService: ConfigService,

@@ -9,6 +9,8 @@ export interface IConfig {
     account?: string;
     password?: string;
   };
+
+  enabledLog: boolean;
 }
 
 export default (): Partial<IConfig> => ({
@@ -23,4 +25,5 @@ export default (): Partial<IConfig> => ({
     account: process.env.SWAGGER_ACCOUNT || 'admin',
     password: process.env.SWAGGER_PASSWORD || 'admin',
   },
+  enabledLog: process.env.ENABLED_LOG === '1',
 });
