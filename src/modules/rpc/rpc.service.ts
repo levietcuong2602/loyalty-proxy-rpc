@@ -9,6 +9,7 @@ import axios, { AxiosError } from 'axios';
 import { ConfigService } from '@nestjs/config';
 import { RedisCachingService } from '@shared/cache/redis/redis-caching.service';
 import { CACHE_SERVICE } from '@shared/cache';
+import { sleepFor } from '@/shared/helper/fn.helper';
 
 @Injectable()
 export class RpcService implements OnModuleInit {
@@ -65,9 +66,6 @@ export class RpcService implements OnModuleInit {
           await this.cacheService.set(this.ENDPOINT_LAST_ERROR_KEY(i), '0', {
             ttl: 0,
           });
-          await this.cacheService.set(this.ENDPOINT_ERROR_COUNT_KEY(i), '0', {
-            ttl: 0,
-          });
         }
       }
 
@@ -100,7 +98,10 @@ export class RpcService implements OnModuleInit {
    */
   private async moveToNextEndpoint(currentIndex: number): Promise<number> {
     const lockKey = `${this.CURRENT_INDEX_KEY}:lock`;
-    while (true) {
+    const maxRetries = 30; // 30 * 100ms = 3 seconds max
+    let retries = 0;
+
+    while (retries < maxRetries) {
       // Try to acquire lock using INCR (atomic operation)
       const locked = await this.acquireLock(lockKey);
 
@@ -137,7 +138,9 @@ export class RpcService implements OnModuleInit {
           await this.releaseLock(lockKey);
         }
       } else {
-        await new Promise((resolve) => setTimeout(resolve, 50));
+        // Lock not acquired, wait and retry
+        retries++;
+        await sleepFor(100);
       }
     }
 
@@ -145,7 +148,7 @@ export class RpcService implements OnModuleInit {
     // (better than blocking forever)
     const nextIndex = (currentIndex + 1) % this.endpoints.length;
     this.logger.warn(
-      `Could not acquire lock for endpoint switch, proceeding anyway: ${currentIndex} → ${nextIndex}`,
+      `Could not acquire lock after ${maxRetries} retries, proceeding anyway: ${currentIndex} → ${nextIndex}`,
     );
     return nextIndex;
   }
@@ -159,17 +162,12 @@ export class RpcService implements OnModuleInit {
       // INCR is atomic - returns 1 if we're first, > 1 if already locked
       const lockValue = await this.cacheService.incr(key);
 
-      if (lockValue - 1 >= 0) {
-        // We acquired the lock, set TTL to auto-expire (prevent deadlock)
-        await this.cacheService.set(key, lockValue.toString(), {
-          ttl: 3, // 3 seconds auto-expire
-        });
+      if (lockValue > 1) {
         return true;
-      } else {
-        // Lock already held by another request, decrement back
-        // This is safe because we know we didn't get the lock
-        return false;
       }
+
+      // Lock already held by another request
+      return false;
     } catch (error) {
       this.logger.error('Failed to acquire lock', error);
       return false;
@@ -240,13 +238,7 @@ export class RpcService implements OnModuleInit {
             ttl: 0,
           },
         );
-        await this.cacheService.set(
-          this.ENDPOINT_ERROR_COUNT_KEY(currentIdx),
-          '0',
-          {
-            ttl: 0,
-          },
-        );
+        await this.cacheService.del(this.ENDPOINT_ERROR_COUNT_KEY(currentIdx));
 
         return { endpoint: this.endpoints[currentIdx], index: currentIdx };
       }
@@ -289,9 +281,7 @@ export class RpcService implements OnModuleInit {
     );
 
     // Increment error count using Redis INCR for atomic operation
-    await this.cacheService.incr(this.ENDPOINT_ERROR_COUNT_KEY(index));
-
-    const errorCount = await this.cacheService.get<string>(
+    const errorCount = await this.cacheService.incr(
       this.ENDPOINT_ERROR_COUNT_KEY(index),
     );
 
@@ -336,7 +326,7 @@ export class RpcService implements OnModuleInit {
 
           retries++;
           // Small delay to avoid hammering endpoints
-          await new Promise((resolve) => setTimeout(resolve, 100));
+          await sleepFor(100);
           continue;
         } else {
           // Non rate-limit errors should be thrown immediately
