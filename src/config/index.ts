@@ -1,3 +1,5 @@
+import redisConfig, { IRedisConfig } from './redis.config';
+
 export interface IConfig {
   env?: string;
   port: number;
@@ -9,6 +11,8 @@ export interface IConfig {
     account?: string;
     password?: string;
   };
+
+  redis: IRedisConfig;
 
   enabledLog: boolean;
 }
@@ -26,4 +30,5 @@ export default (): Partial<IConfig> => ({
     password: process.env.SWAGGER_PASSWORD || 'admin',
   },
   enabledLog: process.env.ENABLED_LOG === '1',
+  redis: redisConfig(),
 });

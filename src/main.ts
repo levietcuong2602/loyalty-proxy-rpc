@@ -14,7 +14,6 @@ import {
 import { useContainer } from 'class-validator';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { LoggerService } from './shared/modules/logger/logger.service';
-import { join } from 'path';
 import * as bodyParser from 'body-parser';
 
 async function bootstrap() {
@@ -59,12 +58,6 @@ async function bootstrap() {
   useContainer(app.select(AppModule), { fallbackOnErrors: true });
   useEnableCors(app);
   useDisableHostHeader(app);
-
-  // Cấu hình để phục vụ file tĩnh từ thư mục 'public'
-  const publicDir = join(process.cwd(), 'public');
-  app.useStaticAssets(publicDir, {
-    prefix: '/public/',
-  });
 
   await app.listen(appConfig.get<number>('PORT') || 80);
 }

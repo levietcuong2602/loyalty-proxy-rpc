@@ -1,4 +1,4 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Get, Post } from '@nestjs/common';
 import { RpcService } from './rpc.service';
 
 @Controller('rpc')
@@ -8,5 +8,10 @@ export class RpcController {
   @Post('')
   async forwardRpcRequest(@Body() body: any) {
     return this.rpcService.forwardRpcRequest(body);
+  }
+
+  @Get('health')
+  async getHealth() {
+    return this.rpcService.getHealth();
   }
 }
